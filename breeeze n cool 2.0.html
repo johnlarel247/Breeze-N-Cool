@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Breeze N Cool — Dashboard (Per-user)</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  :root{ --blue1:#1e90ff; --blue2:#63b3ff; --bg:#f7f8fb; --muted:#7b88a6; --danger:#ff6b6b; }
+  *{box-sizing:border-box}
+  body{ font-family:Inter, Poppins, sans-serif; margin:0; background:var(--bg); color:#10264b; -webkit-font-smoothing:antialiased; }
+
+  header{ padding:20px 28px; background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; border-bottom-left-radius:12px; border-bottom-right-radius:12px }
+  .header-row{ max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .brand-left{ display:flex; align-items:center; gap:12px }
+  .brand-left img{ height:52px; border-radius:8px; background:white; padding:6px }
+  .brand-left h1{ margin:0; font-size:18px; font-weight:700 }
+  .header-actions{ display:flex; gap:8px; align-items:center }
+
+  .wrap{ max-width:1200px; margin:22px auto; padding:0 18px 60px; }
+
+  .card{ background:white; border-radius:12px; padding:18px; box-shadow:0 6px 22px rgba(11,61,145,0.06) }
+
+  /* Auth */
+  .auth{ max-width:560px; margin:18px auto 30px; padding:20px; border-radius:12px; background:white; }
+  .auth h2{ margin:0 0 12px; font-family:Poppins }
+  .toggle{ display:flex; gap:8px; margin-bottom:12px }
+  .toggle button{ flex:1; padding:10px; border-radius:8px; border:1px solid #e6eefc; background:white; cursor:pointer; font-weight:600 }
+  .toggle button.active{ background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; border:none }
+
+  label{ display:block; font-size:13px; margin:6px 0 6px; color:var(--muted) }
+  input[type="text"],input[type="password"],input[type="date"],select,input[type="number"]{
+    width:100%; padding:10px; border-radius:8px; border:1px solid #e9f0ff; box-sizing:border-box; font-size:14px;
+  }
+
+  /* Form: match the screenshot spacing */
+  .form-grid{
+    display:grid;
+    grid-template-columns: 150px 1fr 1fr 160px 160px 160px;
+    gap:12px;
+    align-items:center;
+  }
+  .form-grid .full{ grid-column: 1 / -1; }
+  .form-grid .span2{ grid-column: span 2; }
+  .form-grid .span3{ grid-column: span 3; }
+  .add-record-title{ font-size:24px; margin-bottom:14px; font-weight:700; color:#0b3d91 }
+
+  .actions-row{ display:flex; gap:10px; align-items:center; margin-top:12px; }
+
+  .btn{ padding:10px 14px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; cursor:pointer; font-weight:700 }
+  .btn.ghost{ background:white; color:var(--blue1); border:1px solid var(--blue1) }
+  .btn.secondary{ background:#f5f7fb; color:var(--muted); border:1px solid #eef5ff }
+
+  .topbar{ display:flex; justify-content:space-between; gap:8px; align-items:center; margin:18px 0; flex-wrap:wrap }
+  .left-controls{ display:flex; gap:8px; align-items:center }
+
+  .table-wrap{ overflow:auto; margin-top:8px; border-radius:8px; }
+  table{ width:100%; border-collapse:collapse; margin-top:12px; min-width:1000px }
+  th, td{ padding:10px; border-bottom:1px solid #f1f6ff; text-align:left; font-size:13px; color:#1b3255 }
+  th{ background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; font-weight:700 }
+
+  .delete-btn{ padding:6px 8px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--danger),#ff9999); color:white; cursor:pointer }
+
+  .totals{ margin-top:12px; text-align:right; font-weight:700; color:#0b3d91 }
+  .service-summary{ margin-top:8px; font-size:14px; color:var(--muted) }
+
+  /* Dashboard */
+  .dashboard{ display:none; margin-top:18px; }
+  .dashboard-header{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap }
+  .dash-controls{ display:flex; gap:8px; align-items:center }
+  .dashboard-grid{ display:grid; grid-template-columns: repeat(4,1fr); gap:14px; margin-top:16px; }
+  .stat-card{ padding:16px; border-radius:12px; background:white; box-shadow:0 6px 22px rgba(11,61,145,0.03); display:flex; align-items:center; gap:12px; }
+  .stat-card .label{ font-weight:700; color:#1b3255 }
+  .stat-card .value{ font-size:22px; font-weight:800; color:var(--blue1) }
+  .chart-row{ display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-top:16px; }
+  .card-small{ padding:14px; border-radius:12px; background:white; }
+
+  .dash-logout{ background:#fff; color:var(--danger); border:1px solid var(--danger); padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700 }
+
+  @media (max-width:1100px){
+    .form-grid{ grid-template-columns: 120px 1fr 1fr 140px 140px; }
+    .dashboard-grid{ grid-template-columns: repeat(2,1fr); }
+    .chart-row{ grid-template-columns: 1fr; }
+  }
+  @media (max-width:700px){
+    .form-grid{ grid-template-columns: 1fr 1fr; }
+    .header-row{ flex-direction:column; align-items:flex-start }
+  }
+
+  .muted{ color:var(--muted); font-size:13px }
+  .pill{ padding:6px 10px; border-radius:999px; background:#f1f7ff; color:var(--blue1); font-weight:700 }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand-left">
+      <img src="https://via.placeholder.com/150x56?text=Breeze+Logo" alt="logo">
+      <div>
+        <h1>Breeze N Cool — Statistical Report</h1>
+        <div class="muted" style="font-size:13px">Per-user demo — data saved in your browser</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="dashboardBtn" class="btn">Dashboard</button>
+      <div id="topWelcome" class="muted" style="padding-left:6px"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- AUTH -->
+  <div id="authContainer" class="auth card">
+    <h2 id="authTitle">Sign in</h2>
+
+    <div class="toggle">
+      <button id="signinToggle" class="active">Sign in</button>
+      <button id="signupToggle">Create account</button>
+    </div>
+
+    <div id="signinForm">
+      <label>Username</label>
+      <input id="loginUser" type="text" placeholder="username" />
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="password" />
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="doLogin" class="btn">Sign in</button>
+        <button id="goSignUp" class="btn ghost">Create account</button>
+      </div>
+      <p class="muted" style="margin-top:10px">Demo accounts are stored locally in your browser. For production, use a server.</p>
+    </div>
+
+    <div id="signupForm" style="display:none">
+      <label>Create username</label>
+      <input id="newUser" type="text" placeholder="choose username" />
+      <label>Create password</label>
+      <input id="newPass" type="password" placeholder="choose password" />
+      <label>Confirm password</label>
+      <input id="newPass2" type="password" placeholder="confirm password" />
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="doSignup" class="btn">Create</button>
+        <button id="toSignIn" class="btn ghost">Back to sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" style="display:none">
+
+    <!-- Add Record card -->
+    <div id="recordsCard" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="add-record-title">Add Record</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="welcomeMsg" class="muted"></div>
+          <button id="showDashboard" class="btn">Dashboard</button>
+        </div>
+      </div>
+
+      <form id="addForm" class="form-grid" onsubmit="return false;">
+        <!-- row 1 -->
+        <input type="date" id="date" />
+        <input type="text" id="client" placeholder="Client Name" />
+        <input type="text" id="address" placeholder="Address" />
+        <select id="contactType"><option>Tel/Cellphone</option><option>Tel</option><option>Cellphone</option></select>
+        <select id="clientType"><option>Residential</option><option>Commercial</option><option>Institutional</option></select>
+        <input type="text" id="contact" placeholder="Contact Number" />
+
+        <!-- row 2 -->
+        <input type="text" id="hpType" placeholder="HP Type" />
+        <input type="text" id="technician" placeholder="Technician" />
+        <select id="service">
+          <option>Cleaning</option><option>Installation</option><option>Repair</option><option>Relocation</option><option>Check Up</option>
+        </select>
+        <input type="number" id="unit" placeholder="Unit" />
+        <input type="number" id="supplier" placeholder="Supplier Charge" />
+        <input type="number" id="gross" placeholder="Gross Sale" />
+
+        <!-- row 3 -->
+        <input type="number" id="extra" placeholder="Extra Charge" />
+        <input type="number" id="deduction" placeholder="Discount/Deduction" />
+        <input type="text" id="brand" placeholder="Brand (e.g., Midea, TCL, Carrier)" />
+        <input type="number" id="labor" placeholder="Labor Charge" />
+        <div class="span2" style="display:flex;align-items:center;gap:10px">
+          <button type="button" id="addRecordBtn" class="btn">Add Record</button>
+          <button type="button" id="clearAdd" class="btn secondary">Clear</button>
+          <div class="muted" style="margin-left:auto">Service now includes <b>Repair</b>. Brand & Labor added.</div>
+        </div>
+      </form>
+
+      <div class="topbar" style="margin-top:18px">
+        <div class="left-controls">
+          <label class="muted" style="margin-right:8px">Filter by Month:</label>
+          <select id="monthFilter">
+            <option value="">All Months</option>
+            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+            <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+            <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <button id="applyMonth" class="btn ghost">Apply</button>
+          <button id="clearMonth" class="btn ghost">Clear</button>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="searchInput" placeholder="Search by name, address, service, brand..." style="min-width:300px;padding:10px;border-radius:8px;border:1px solid #e6eefc" />
+          <button id="searchBtn" class="btn ghost">Search</button>
+          <button id="clearSearch" class="btn ghost">Clear</button>
+          <button id="exportCSV" class="btn">Export CSV</button>
+          <button id="exportWord" class="btn">Export Word</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="recordTable">
+          <thead>
+            <tr>
+              <th>Date</th><th>Client</th><th>Address</th><th>Contact Type</th><th>Client Type</th>
+              <th>Contact</th><th>HP Type</th><th>Technician</th><th>Service</th><th>Brand</th>
+              <th>Gross</th><th>Labor</th><th>Extra</th><th>Deduction</th><th>Net</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="totals" id="totals">Grand Total Net: ₱0</div>
+      <div class="service-summary" id="serviceSummary"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="dashboard card">
+      <div class="dashboard-header">
+        <div>
+          <div style="font-weight:800;font-size:20px;color:#0b3d91">Dashboard</div>
+          <div class="muted" style="margin-top:6px">Animated service share and top brands. Use filters to change the period.</div>
+        </div>
+
+        <div class="dash-controls">
+          <label class="muted">Period:</label>
+          <select id="dashPeriod">
+            <option value="all">All Time</option>
+            <option value="daily">Daily</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+          <input type="date" id="dashDate" style="display:none" />
+          <select id="dashMonth" style="display:none">
+            <option value="">--Month--</option>
+            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+            <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+            <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <input id="dashYear" type="number" placeholder="Year (e.g., 2025)" style="width:110px;display:none" />
+          <button id="dashApply" class="btn">Apply</button>
+
+          <!-- Logout on dashboard top-right -->
+          <button id="logoutBtn" class="dash-logout">Logout</button>
+          <button id="backToRecords" class="btn ghost">Back to Records</button>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="margin-top:14px">
+        <div class="stat-card">
+          <div style="flex:1">
+            <div class="label">Cleaning</div>
+            <div class="value" id="statCleaning">0%</div>
+            <div class="muted">Income share</div>
+          </div>
+          <canvas id="chartCleaning" width="80" height="80"></canvas>
+        </div>
+
+        <div class="stat-card">
+          <div style="flex:1">
+            <div class="label">Installation</div>
+            <div class="value" id="statInstallation">0%</div>
+            <div class="muted">Income share</div>
+          </div>
+          <canvas id="chartInstallation" width="80" height="80"></canvas>
+        </div>
+
+        <div class="stat-card">
+          <div style="flex:1">
+            <div class="label">Relocation</div>
+            <div class="value" id="statRelocation">0%</div>
+            <div class="muted">Income share</div>
+          </div>
+          <canvas id="chartRelocation" width="80" height="80"></canvas>
+        </div>
+
+        <div class="stat-card">
+          <div style="flex:1">
+            <div class="label">Repair</div>
+            <div class="value" id="statRepair">0%</div>
+            <div class="muted">Income share</div>
+          </div>
+          <canvas id="chartRepair" width="80" height="80"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="card-small">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">Top Brands</div>
+            <div class="muted">Based on net revenue</div>
+          </div>
+          <canvas id="brandsChart" style="margin-top:12px; max-height:360px"></canvas>
+        </div>
+
+        <div class="card-small">
+          <div style="font-weight:700">Summary</div>
+          <div id="dashSummary" style="margin-top:8px" class="muted"></div>
+          <div style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:6px">Totals</div>
+            <div id="dashTotals" class="muted"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ----------------- Storage keys & helpers ----------------- */
+const USERS_KEY = "bnc_users_v1";
+const RECORD_KEY_PREFIX = "bnc_records_";
+
+function loadUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function loadRecordsFor(user){ return JSON.parse(localStorage.getItem(RECORD_KEY_PREFIX + user) || "[]"); }
+function saveRecordsFor(user, recs){ localStorage.setItem(RECORD_KEY_PREFIX + user, JSON.stringify(recs||[])); }
+function encodePw(p){ return btoa(p); } // demo only; not secure
+function numberFormat(n){ return (Math.round((n||0)*100)/100).toLocaleString(); }
+function escapeHtml(s){ return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ----------------- Auth UI wiring ----------------- */
+const signinToggle = document.getElementById("signinToggle");
+const signupToggle = document.getElementById("signupToggle");
+const signinForm = document.getElementById("signinForm");
+const signupForm = document.getElementById("signupForm");
+const doLogin = document.getElementById("doLogin");
+const doSignup = document.getElementById("doSignup");
+const goSignUp = document.getElementById("goSignUp");
+const toSignIn = document.getElementById("toSignIn");
+
+signinToggle.onclick = ()=>{ signinToggle.classList.add("active"); signupToggle.classList.remove("active"); signinForm.style.display="block"; signupForm.style.display="none"; document.getElementById("authTitle").textContent="Sign in"; }
+signupToggle.onclick = ()=>{ signupToggle.classList.add("active"); signinToggle.classList.remove("active"); signupForm.style.display="block"; signinForm.style.display="none"; document.getElementById("authTitle").textContent="Create account"; }
+goSignUp.onclick = ()=>{ signupToggle.click(); }
+toSignIn.onclick = ()=>{ signinToggle.click(); }
+
+let currentUser = null;
+
+/* Show app for user (goes to Add Record view) */
+function showAppFor(user){
+  currentUser = user;
+  document.getElementById("authContainer").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("recordsCard").style.display = "block";
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("welcomeMsg").textContent = `Hi, ${user}`;
+  document.getElementById("topWelcome").textContent = `${user}`;
+  document.getElementById("backToRecords").style.display = "none";
+  populateMonths();
+  renderRecords();
+}
+
+/* Signup & Login (fixed wiring) */
+doSignup.addEventListener("click", ()=> {
+  const u = document.getElementById("newUser").value.trim();
+  const p = document.getElementById("newPass").value;
+  const p2 = document.getElementById("newPass2").value;
+  if(!u || !p){ alert("Please provide username and password."); return; }
+  if(p !== p2){ alert("Passwords do not match."); return; }
+  const users = loadUsers();
+  if(users[u]){ alert("Username exists — choose another."); return; }
+  users[u] = { pw: encodePw(p) };
+  saveUsers(users);
+  saveRecordsFor(u, []);
+  alert("Account created. You can sign in now.");
+  signinToggle.click();
+  document.getElementById("newUser").value=""; document.getElementById("newPass").value=""; document.getElementById("newPass2").value="";
+});
+
+doLogin.addEventListener("click", ()=> {
+  const u = document.getElementById("loginUser").value.trim();
+  const p = document.getElementById("loginPass").value;
+  if(!u || !p){ alert("Please enter username and password."); return; }
+  const users = loadUsers();
+  if(!users[u] || users[u].pw !== encodePw(p)){ alert("Invalid credentials."); return; }
+  document.getElementById("loginUser").value=""; document.getElementById("loginPass").value="";
+  showAppFor(u);
+});
+
+/* Logout (placed in dashboard area) */
+document.getElementById("logoutBtn").addEventListener("click", ()=> {
+  if(!currentUser) return;
+  if(confirm("Log out?")){
+    currentUser = null;
+    document.getElementById("app").style.display = "none";
+    document.getElementById("authContainer").style.display = "block";
+    signinToggle.click();
+    document.getElementById("topWelcome").textContent = "";
+  }
+});
+
+/* ----------------- Init date defaults ----------------- */
+document.getElementById("date").value = new Date().toISOString().slice(0,10);
+document.getElementById("dashDate").value = new Date().toISOString().slice(0,10);
+
+/* ----------------- Add record (with brand & labor) ----------------- */
+document.getElementById("addRecordBtn").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const rec = {
+    date: document.getElementById("date").value,
+    client: document.getElementById("client").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    contactType: document.getElementById("contactType").value,
+    clientType: document.getElementById("clientType").value,
+    contact: document.getElementById("contact").value.trim(),
+    hpType: document.getElementById("hpType").value.trim(),
+    technician: document.getElementById("technician").value.trim(),
+    service: document.getElementById("service").value,
+    brand: document.getElementById("brand").value.trim(),
+    unit: parseFloat(document.getElementById("unit").value) || 0,
+    supplier: parseFloat(document.getElementById("supplier").value) || 0,
+    gross: parseFloat(document.getElementById("gross").value) || 0,
+    labor: parseFloat(document.getElementById("labor").value) || 0,
+    extra: parseFloat(document.getElementById("extra").value) || 0,
+    deduction: parseFloat(document.getElementById("deduction").value) || 0
+  };
+  if(!rec.date || !rec.client){ alert("Date and Client are required."); return; }
+  const recs = loadRecordsFor(currentUser);
+  recs.push(rec);
+  saveRecordsFor(currentUser, recs);
+  clearAddForm();
+  renderRecords();
+});
+
+document.getElementById("clearAdd").addEventListener("click", clearAddForm);
+
+function clearAddForm(){
+  const ids = ["client","address","contactType","clientType","contact","hpType","technician","service","unit","supplier","gross","extra","deduction","brand","labor"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.tagName === "SELECT") el.selectedIndex = 0;
+    else el.value = "";
+  });
+  document.getElementById("date").value = new Date().toISOString().slice(0,10);
+}
+
+/* ----------------- renderRecords ----------------- */
+function renderRecords(viewList = null){
+  if(!currentUser) return;
+  const all = loadRecordsFor(currentUser);
+  let toShow;
+  if(!viewList){
+    toShow = all.map((r, idx) => ({ rec: r, __origIndex: idx }));
+  } else {
+    toShow = viewList.map(item => {
+      if(item && typeof item.__origIndex !== "undefined") return item;
+      const idx = all.findIndex(r => JSON.stringify(r) === JSON.stringify(item));
+      return { rec: item, __origIndex: idx >= 0 ? idx : null };
+    });
+  }
+
+  const tbody = document.querySelector("#recordTable tbody");
+  tbody.innerHTML = "";
+  let totalNet = 0, totalGross = 0, totalExtra = 0, totalDeduct = 0, totalLabor=0;
+  const serviceTotals = { "Cleaning":0, "Installation":0, "Check Up":0, "Relocation":0, "Repair":0 };
+
+  toShow.forEach((entry, i) => {
+    const r = entry.rec;
+    if(!r) return;
+    const net = (r.gross + r.extra + r.labor) - r.deduction;
+    totalNet += net; totalGross += r.gross; totalExtra += r.extra; totalDeduct += r.deduction; totalLabor += r.labor;
+    if(serviceTotals.hasOwnProperty(r.service)) serviceTotals[r.service] += net;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.date}</td>
+      <td>${escapeHtml(r.client)}</td>
+      <td>${escapeHtml(r.address)}</td>
+      <td>${escapeHtml(r.contactType)}</td>
+      <td>${escapeHtml(r.clientType)}</td>
+      <td>${escapeHtml(r.contact)}</td>
+      <td>${escapeHtml(r.hpType)}</td>
+      <td>${escapeHtml(r.technician)}</td>
+      <td>${escapeHtml(r.service)}</td>
+      <td>${escapeHtml(r.brand)}</td>
+      <td>₱${numberFormat(r.gross)}</td>
+      <td>₱${numberFormat(r.labor)}</td>
+      <td>₱${numberFormat(r.extra)}</td>
+      <td>₱${numberFormat(r.deduction)}</td>
+      <td><b>₱${numberFormat(net)}</b></td>
+      <td><button class="delete-btn" data-orig="${entry.__origIndex}">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("totals").innerHTML = `Total Gross: ₱${numberFormat(totalGross)} | Total Labor: ₱${numberFormat(totalLabor)} | Total Extra: ₱${numberFormat(totalExtra)} | Total Deduction: ₱${numberFormat(totalDeduct)} | <b>Grand Total Net: ₱${numberFormat(totalNet)}</b>`;
+
+  document.getElementById("serviceSummary").innerHTML = `Service income — Cleaning: ₱${numberFormat(serviceTotals["Cleaning"])} | Installation: ₱${numberFormat(serviceTotals["Installation"])} | Check Up: ₱${numberFormat(serviceTotals["Check Up"])} | Relocation: ₱${numberFormat(serviceTotals["Relocation"])} | Repair: ₱${numberFormat(serviceTotals["Repair"])}`;
+
+  // wire delete buttons
+  document.querySelectorAll(".delete-btn").forEach(btn=>{
+    btn.onclick = () => {
+      const orig = btn.getAttribute("data-orig");
+      if(orig === null || orig === "null"){ alert("Cannot determine original record to delete."); return; }
+      const idx = parseInt(orig);
+      if(isNaN(idx)){ alert("Delete index invalid."); return; }
+      if(confirm("Delete this record?")){
+        const recs = loadRecordsFor(currentUser);
+        if(idx >= 0 && idx < recs.length){
+          recs.splice(idx, 1);
+          saveRecordsFor(currentUser, recs);
+          renderRecords();
+        } else {
+          alert("Record not found.");
+        }
+      }
+    };
+  });
+}
+
+/* ----------------- Search ----------------- */
+document.getElementById("searchBtn").addEventListener("click", ()=> {
+  if(!currentUser) return;
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  const all = loadRecordsFor(currentUser);
+  if(!q){ renderRecords(); return; }
+  const filtered = [];
+  all.forEach((r, idx) => {
+    if((r.client||"").toLowerCase().includes(q) || (r.address||"").toLowerCase().includes(q) || (r.service||"").toLowerCase().includes(q) || (r.technician||"").toLowerCase().includes(q) || (r.brand||"").toLowerCase().includes(q)){
+      filtered.push({ rec: r, __origIndex: idx });
+    }
+  });
+  renderRecords(filtered);
+});
+document.getElementById("clearSearch").addEventListener("click", ()=>{ document.getElementById("searchInput").value=""; renderRecords(); });
+
+/* ----------------- Month filter ----------------- */
+document.getElementById("applyMonth").addEventListener("click", ()=> {
+  if(!currentUser) return;
+  const sel = document.getElementById("monthFilter").value; // "" or "01".."12"
+  const all = loadRecordsFor(currentUser);
+  if(!sel){ renderRecords(); return; }
+  const filtered = [];
+  all.forEach((r, idx) => {
+    if(!r.date) return;
+    const month = r.date.slice(5,7);
+    if(month === sel) filtered.push({ rec: r, __origIndex: idx });
+  });
+  renderRecords(filtered);
+});
+document.getElementById("clearMonth").addEventListener("click", ()=>{ document.getElementById("monthFilter").value=""; renderRecords(); });
+
+/* ----------------- Export CSV & Word ----------------- */
+document.getElementById("exportCSV").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const recs = loadRecordsFor(currentUser);
+  if(recs.length === 0){ alert("No records to export."); return; }
+  let csv = "Date,Client,Address,Contact Type,Client Type,Contact,HP Type,Technician,Service,Brand,Gross,Labor,Extra,Deduction,Net\n";
+  let totalNet = 0;
+  recs.forEach(r=>{
+    const net = (r.gross + r.extra + r.labor) - r.deduction;
+    totalNet += net;
+    const cols = [r.date, r.client, r.address, r.contactType, r.clientType, r.contact, r.hpType, r.technician, r.service, r.brand, r.gross, r.labor, r.extra, r.deduction, net];
+    csv += cols.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",") + "\n";
+  });
+  csv += `,,,,,,,,,,,,,"Grand Total Net",${totalNet}\n`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentUser}_BreezeNCool_Records.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("exportWord").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const recs = loadRecordsFor(currentUser);
+  if(recs.length === 0){ alert("No records to export."); return; }
+  let totalNet = 0;
+  let html = `<table border="1" style="border-collapse:collapse;width:100%"><tr><th>Date</th><th>Client</th><th>Address</th><th>Contact Type</th><th>Client Type</th><th>Contact</th><th>HP Type</th><th>Technician</th><th>Service</th><th>Brand</th><th>Gross</th><th>Labor</th><th>Extra</th><th>Deduction</th><th>Net</th></tr>`;
+  recs.forEach(r=>{
+    const net = (r.gross + r.extra + r.labor) - r.deduction;
+    totalNet += net;
+    html += `<tr>
+      <td>${r.date}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.address)}</td><td>${escapeHtml(r.contactType)}</td><td>${escapeHtml(r.clientType)}</td>
+      <td>${escapeHtml(r.contact)}</td><td>${escapeHtml(r.hpType)}</td><td>${escapeHtml(r.technician)}</td><td>${escapeHtml(r.service)}</td><td>${escapeHtml(r.brand)}</td>
+      <td>₱${numberFormat(r.gross)}</td><td>₱${numberFormat(r.labor)}</td><td>₱${numberFormat(r.extra)}</td><td>₱${numberFormat(r.deduction)}</td><td>₱${numberFormat(net)}</td>
+    </tr>`;
+  });
+  html += `<tr><td colspan="14" style="text-align:right;"><b>Grand Total Net</b></td><td>₱${numberFormat(totalNet)}</td></tr></table>`;
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentUser}_BreezeNCool_Records.doc`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* ----------------- Dashboard logic & charts ----------------- */
+let chartCleaning=null, chartInstallation=null, chartRelocation=null, chartRepair=null, brandsChart=null;
+
+function getFilteredRecordsForDashboard(period){
+  if(!currentUser) return [];
+  const all = loadRecordsFor(currentUser);
+  if(period === "all") return all.slice();
+
+  if(period === "daily"){
+    const d = document.getElementById("dashDate").value;
+    if(!d) return [];
+    return all.filter(r => r.date === d);
+  }
+  if(period === "monthly"){
+    const m = document.getElementById("dashMonth").value;
+    const y = String(document.getElementById("dashYear").value || "");
+    if(!m || !y) return [];
+    return all.filter(r => r.date.slice(0,4) === y && r.date.slice(5,7) === m);
+  }
+  if(period === "yearly"){
+    const y = String(document.getElementById("dashYear").value || "");
+    if(!y) return [];
+    return all.filter(r => r.date.slice(0,4) === y);
+  }
+  return all;
+}
+
+function updateDashboard(){
+  if(!currentUser) return;
+  const period = document.getElementById("dashPeriod").value;
+  const recs = getFilteredRecordsForDashboard(period);
+
+  let totalNet = 0;
+  const serviceTotals = { "Cleaning":0, "Installation":0, "Relocation":0, "Repair":0, "Check Up":0 };
+  const brandTotals = {};
+
+  recs.forEach(r => {
+    const net = (r.gross || 0) + (r.extra || 0) + (r.labor || 0) - (r.deduction || 0);
+    totalNet += net;
+    if(serviceTotals.hasOwnProperty(r.service)) serviceTotals[r.service] += net;
+    const b = (r.brand || "Unknown").trim() || "Unknown";
+    const key = b.toLowerCase();
+    brandTotals[key] = (brandTotals[key] || { label: b, val: 0 });
+    brandTotals[key].val += net;
+  });
+
+  // update percentages text
+  const pct = (val) => totalNet ? Math.round((val/totalNet)*100) : 0;
+  document.getElementById("statCleaning").textContent = pct(serviceTotals["Cleaning"]) + "%";
+  document.getElementById("statInstallation").textContent = pct(serviceTotals["Installation"]) + "%";
+  document.getElementById("statRelocation").textContent = pct(serviceTotals["Relocation"]) + "%";
+  document.getElementById("statRepair").textContent = pct(serviceTotals["Repair"]) + "%";
+
+  // summary text
+  document.getElementById("dashSummary").innerHTML = `
+    Total records: <b>${recs.length}</b><br/>
+    Total revenue (net): <b>₱${numberFormat(totalNet)}</b><br/>
+    Period: <b>${period}</b>
+  `;
+  document.getElementById("dashTotals").innerHTML = `
+    Cleaning: ₱${numberFormat(serviceTotals["Cleaning"])} <br/>
+    Installation: ₱${numberFormat(serviceTotals["Installation"])} <br/>
+    Relocation: ₱${numberFormat(serviceTotals["Relocation"])} <br/>
+    Repair: ₱${numberFormat(serviceTotals["Repair"])}
+  `;
+
+  // small doughnuts
+  function buildOrUpdateDoughnut(chartRef, canvasEl, value){
+    const rest = Math.max(0, Math.round(Math.max(0, (totalNet - value))));
+    if(chartRef && chartRef.destroy) chartRef.destroy();
+    const ctx = canvasEl.getContext('2d');
+    return new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['This','Other'],
+        datasets: [{
+          data: [Math.round(value), rest],
+          backgroundColor: ['#1e90ff', '#e6f4ff'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: '70%',
+        animation: { duration: 700, easing: 'easeOutCubic' },
+        plugins: { legend:{ display:false }, tooltip:{ enabled:false } }
+      }
+    });
+  }
+
+  const cClean = document.getElementById('chartCleaning'); if(chartCleaning && chartCleaning.destroy) chartCleaning.destroy(); chartCleaning = buildOrUpdateDoughnut(chartCleaning, cClean, serviceTotals["Cleaning"]);
+  const cInstall = document.getElementById('chartInstallation'); if(chartInstallation && chartInstallation.destroy) chartInstallation.destroy(); chartInstallation = buildOrUpdateDoughnut(chartInstallation, cInstall, serviceTotals["Installation"]);
+  const cReloc = document.getElementById('chartRelocation'); if(chartRelocation && chartRelocation.destroy) chartRelocation.destroy(); chartRelocation = buildOrUpdateDoughnut(chartRelocation, cReloc, serviceTotals["Relocation"]);
+  const cRepair = document.getElementById('chartRepair'); if(chartRepair && chartRepair.destroy) chartRepair.destroy(); chartRepair = buildOrUpdateDoughnut(chartRepair, cRepair, serviceTotals["Repair"]);
+
+  // brands (top 6)
+  const brandEntries = Object.values(brandTotals).sort((a,b)=>b.val-a.val).slice(0,8);
+  const labels = brandEntries.map(x => x.label);
+  const vals = brandEntries.map(x => Math.round(x.val));
+  const colors = ['#1e90ff','#63b3ff','#ffa94d','#ff6b6b','#7ae582','#a78bfa','#ff9ec2','#ffd57e'];
+  if(brandsChart && brandsChart.destroy) brandsChart.destroy();
+  const bc = document.getElementById('brandsChart').getContext('2d');
+  brandsChart = new Chart(bc, {
+    type: 'pie',
+    data: { labels: labels.length ? labels : ['No data'], datasets: [{ data: vals.length ? vals : [1], backgroundColor: colors.slice(0, Math.max(1, labels.length)), borderWidth: 0 }] },
+    options: { animation:{ duration:800, easing:'easeOutQuart' }, plugins:{ legend:{ position:'bottom' } } }
+  });
+}
+
+/* Dashboard UI wiring */
+document.getElementById("dashPeriod").addEventListener("change", (e)=>{
+  const v = e.target.value;
+  document.getElementById("dashDate").style.display = v === 'daily' ? 'inline-block' : 'none';
+  document.getElementById("dashMonth").style.display = v === 'monthly' ? 'inline-block' : 'none';
+  document.getElementById("dashYear").style.display = (v === 'monthly' || v === 'yearly') ? 'inline-block' : 'none';
+});
+document.getElementById("dashApply").addEventListener("click", ()=> updateDashboard());
+
+/* Dashboard <-> Records toggles */
+document.getElementById("showDashboard").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  document.getElementById("recordsCard").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("backToRecords").style.display = "inline-block";
+  updateDashboard();
+});
+document.getElementById("dashboardBtn").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  document.getElementById("recordsCard").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("backToRecords").style.display = "inline-block";
+  updateDashboard();
+});
+document.getElementById("backToRecords").addEventListener("click", ()=> {
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("backToRecords").style.display = "none";
+  document.getElementById("recordsCard").style.display = "block";
+});
+
+/* small : populate months/year convenience */
+function populateMonths(){
+  const y = new Date().getFullYear();
+  const dashYear = document.getElementById('dashYear');
+  if(dashYear && !dashYear.value) dashYear.value = y;
+}
+
+/* ----------------- init ----------------- */
+(function init(){
+  document.getElementById("date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("dashDate").value = new Date().toISOString().slice(0,10);
+  renderRecords();
+})();
+</script>
+</body>
+</html>
