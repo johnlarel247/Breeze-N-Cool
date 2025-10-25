@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Breeze N Cool — Dashboard (Per-user) v4</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  :root{ --blue1:#1e90ff; --blue2:#63b3ff; --bg:#f7f8fb; --muted:#7b88a6; --danger:#ff6b6b; }
+  *{box-sizing:border-box}
+  body{ font-family:Inter, Poppins, sans-serif; margin:0; background:var(--bg); color:#10264b; -webkit-font-smoothing:antialiased; }
+
+  header{ padding:20px 28px; background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; border-bottom-left-radius:12px; border-bottom-right-radius:12px }
+  .header-row{ max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .brand-left{ display:flex; align-items:center; gap:12px }
+  .brand-left img{ height:52px; border-radius:8px; background:white; padding:6px }
+  .brand-left h1{ margin:0; font-size:18px; font-weight:700 }
+  .header-actions{ display:flex; gap:8px; align-items:center }
+
+  .wrap{ max-width:1200px; margin:22px auto; padding:0 18px 60px; }
+
+  .card{ background:white; border-radius:12px; padding:18px; box-shadow:0 6px 22px rgba(11,61,145,0.06) }
+
+  /* Auth */
+  .auth{ max-width:560px; margin:18px auto 30px; padding:20px; border-radius:12px; background:white; }
+  .auth h2{ margin:0 0 12px; font-family:Poppins }
+  .toggle{ display:flex; gap:8px; margin-bottom:12px }
+  .toggle button{ flex:1; padding:10px; border-radius:8px; border:1px solid #e6eefc; background:white; cursor:pointer; font-weight:600 }
+  .toggle button.active{ background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; border:none }
+
+  label{ display:block; font-size:13px; margin:6px 0 6px; color:var(--muted) }
+  input[type="text"],input[type="password"],input[type="date"],select,input[type="number"],input[list]{
+    width:100%; padding:10px; border-radius:8px; border:1px solid #e9f0ff; box-sizing:border-box; font-size:14px;
+  }
+
+  .form-grid{
+    display:grid;
+    grid-template-columns: 150px 1fr 1fr 160px 160px 160px;
+    gap:12px;
+    align-items:center;
+  }
+  .form-grid .full{ grid-column: 1 / -1; }
+  .form-grid .span2{ grid-column: span 2; }
+  .form-grid .span3{ grid-column: span 3; }
+  .add-record-title{ font-size:24px; margin-bottom:14px; font-weight:700; color:#0b3d91 }
+
+  .actions-row{ display:flex; gap:10px; align-items:center; margin-top:12px; }
+
+  .btn{ padding:10px 14px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; cursor:pointer; font-weight:700 }
+  .btn.ghost{ background:white; color:var(--blue1); border:1px solid var(--blue1) }
+  .btn.secondary{ background:#f5f7fb; color:var(--muted); border:1px solid #eef5ff }
+  .btn.tertiary{ background:#fff; color:#333; border:1px solid #e6eefc; }
+
+  .topbar{ display:flex; justify-content:space-between; gap:8px; align-items:center; margin:18px 0; flex-wrap:wrap }
+  .left-controls{ display:flex; gap:8px; align-items:center }
+
+  .table-wrap{ overflow:auto; margin-top:8px; border-radius:8px; }
+  table{ width:100%; border-collapse:collapse; margin-top:12px; min-width:1200px }
+  th, td{ padding:10px; border-bottom:1px solid #f1f6ff; text-align:left; font-size:13px; color:#1b3255 }
+  th{ background:linear-gradient(135deg,var(--blue1),var(--blue2)); color:white; font-weight:700 }
+
+  .delete-btn{ padding:6px 8px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--danger),#ff9999); color:white; cursor:pointer }
+  .edit-btn{ padding:6px 8px; border-radius:8px; border:none; background:linear-gradient(135deg,#34c759,#60d394); color:white; cursor:pointer }
+  .save-btn{ padding:6px 8px; border-radius:8px; border:none; background:linear-gradient(135deg,#1e90ff,#63b3ff); color:white; cursor:pointer }
+  .cancel-btn{ padding:6px 8px; border-radius:8px; border:1px solid #e6eefc; background:#fff; color:#0b3d91; cursor:pointer }
+
+  .totals{ margin-top:12px; text-align:right; font-weight:700; color:#0b3d91 }
+  .service-summary{ margin-top:8px; font-size:14px; color:var(--muted) }
+
+  /* Dashboard */
+  .dashboard{ display:none; margin-top:18px; }
+  .dashboard-header{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap }
+  .dash-controls{ display:flex; gap:8px; align-items:center }
+  .dashboard-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:14px; margin-top:16px; }
+  .mini-charts-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:12px; }
+  .stat-mini{ padding:12px; border-radius:10px; background:white; box-shadow:0 6px 22px rgba(11,61,145,0.03); display:flex; align-items:center; gap:12px; }
+  .stat-mini .label{ font-weight:700; color:#1b3255; font-size:14px }
+  .stat-mini .amount{ color:#253a5b; font-weight:700; font-size:13px }
+  .stat-mini .pct{ color:var(--blue1); font-weight:800; font-size:18px }
+
+  .combined-card{ padding:14px; border-radius:10px; background:white; box-shadow:0 6px 22px rgba(11,61,145,0.03); }
+
+  .chart-row{ display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-top:16px; }
+  .card-small{ padding:14px; border-radius:12px; background:white; }
+
+  .dash-logout{ background:#fff; color:var(--danger); border:1px solid var(--danger); padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700 }
+
+  @media (max-width:1100px){
+    .form-grid{ grid-template-columns: 120px 1fr 1fr 140px 140px; }
+    .dashboard-grid{ grid-template-columns: 1fr; }
+    .chart-row{ grid-template-columns: 1fr; }
+  }
+  @media (max-width:700px){
+    .form-grid{ grid-template-columns: 1fr 1fr; }
+    .header-row{ flex-direction:column; align-items:flex-start }
+  }
+
+  .muted{ color:var(--muted); font-size:13px }
+  .pill{ padding:6px 10px; border-radius:999px; background:#f1f7ff; color:var(--blue1); font-weight:700 }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand-left">
+      <img src="https://via.placeholder.com/150x56?text=Breeze+Logo" alt="logo">
+      <div>
+        <h1>Breeze N Cool — Statistical Report</h1>
+        <div class="muted" style="font-size:13px">Per-user demo — data saved in your browser</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="dashboardBtn" class="btn">Dashboard</button>
+      <div id="topWelcome" class="muted" style="padding-left:6px"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- AUTH -->
+  <div id="authContainer" class="auth card">
+    <h2 id="authTitle">Sign in</h2>
+
+    <div class="toggle">
+      <button id="signinToggle" class="active">Sign in</button>
+      <button id="signupToggle">Create account</button>
+    </div>
+
+    <div id="signinForm">
+      <label>Username</label>
+      <input id="loginUser" type="text" placeholder="username" />
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="password" />
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="doLogin" class="btn">Sign in</button>
+        <button id="goSignUp" class="btn ghost">Create account</button>
+      </div>
+      <p class="muted" style="margin-top:10px">Demo accounts are stored locally in your browser. For production, use a server.</p>
+    </div>
+
+    <div id="signupForm" style="display:none">
+      <label>Create username</label>
+      <input id="newUser" type="text" placeholder="choose username" />
+      <label>Create password</label>
+      <input id="newPass" type="password" placeholder="choose password" />
+      <label>Confirm password</label>
+      <input id="newPass2" type="password" placeholder="confirm password" />
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="doSignup" class="btn">Create</button>
+        <button id="toSignIn" class="btn ghost">Back to sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" style="display:none">
+
+    <!-- Add Record card -->
+    <div id="recordsCard" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="add-record-title">Add Record</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="welcomeMsg" class="muted"></div>
+          <button id="showDashboard" class="btn">Dashboard</button>
+        </div>
+      </div>
+
+      <form id="addForm" class="form-grid" onsubmit="return false;">
+        <!-- row 1 -->
+        <input type="date" id="date" />
+        <input type="text" id="client" placeholder="Client Name" />
+        <input type="text" id="address" placeholder="Address" />
+        <select id="contactType"><option>Tel/Cellphone</option><option>Tel</option><option>Cellphone</option></select>
+        <select id="clientType"><option>Residential</option><option>Commercial</option><option>Institutional</option></select>
+        <input type="text" id="contact" placeholder="Contact Number" />
+
+        <!-- row 2 -->
+        <input type="text" id="hpType" placeholder="HP Type" />
+        <input type="text" id="technician" placeholder="Technician" />
+        <select id="service">
+          <option>Cleaning</option><option>Installation</option><option>Repair</option><option>Relocation</option><option>Check Up</option>
+        </select>
+
+        <!-- Unit Type (typeable via datalist) -->
+        <div style="position:relative">
+          <input list="unitTypes" id="unitType" placeholder="Select or type unit type (e.g., Split Type)" />
+          <datalist id="unitTypes">
+            <option value="Split Type"></option>
+            <option value="Window Type"></option>
+            <option value="Floor Mounted"></option>
+            <option value="Ceiling Cassette"></option>
+            <option value="Portable Type"></option>
+            <option value="Centralized Type"></option>
+          </datalist>
+        </div>
+
+        <input type="number" id="unit" placeholder="Unit Count" />
+        <input type="number" id="supplier" placeholder="Supplier Charge" />
+        <input type="number" id="gross" placeholder="Gross Sale" />
+
+        <!-- row 3 -->
+        <input type="number" id="extra" placeholder="Extra Charge" />
+        <input type="number" id="deduction" placeholder="Discount/Deduction" />
+        <input type="text" id="brand" placeholder="Brand (e.g., Midea, TCL, Carrier)" />
+        <input type="number" id="labor" placeholder="Labor Charge" />
+        <div class="span2" style="display:flex;align-items:center;gap:10px">
+          <button type="button" id="addRecordBtn" class="btn">Add Record</button>
+          <button type="button" id="clearAdd" class="btn secondary">Clear</button>
+          <div class="muted" style="margin-left:auto">Service includes <b>Repair</b>. Brand & Labor added.</div>
+        </div>
+      </form>
+
+      <div class="topbar" style="margin-top:18px">
+        <div class="left-controls">
+          <label class="muted" style="margin-right:8px">Filter by Month:</label>
+          <select id="monthFilter">
+            <option value="">All Months</option>
+            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+            <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+            <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <button id="applyMonth" class="btn ghost">Apply</button>
+          <button id="clearMonth" class="btn ghost">Clear</button>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="searchInput" placeholder="Search by name, address, service, brand..." style="min-width:300px;padding:10px;border-radius:8px;border:1px solid #e6eefc" />
+          <button id="searchBtn" class="btn ghost">Search</button>
+          <button id="clearSearch" class="btn ghost">Clear</button>
+          <button id="exportCSV" class="btn">Export CSV</button>
+          <button id="exportWord" class="btn">Export Word</button>
+          <button id="exportPpt" class="btn">Export PPT</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="recordTable">
+          <thead>
+            <tr>
+              <th>Date</th><th>Client</th><th>Address</th><th>Contact Type</th><th>Client Type</th>
+              <th>Contact</th><th>HP Type</th><th>Technician</th><th>Service</th><th>Brand</th><th>Unit Type</th>
+              <th>Unit</th><th>Gross</th><th>Labor</th><th>Extra</th><th>Deduction</th><th>Supplier</th><th>Net</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="totals" id="totals">Grand Total Net: ₱0</div>
+      <div class="service-summary" id="serviceSummary"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="dashboard card">
+      <div class="dashboard-header">
+        <div>
+          <div style="font-weight:800;font-size:20px;color:#0b3d91">Dashboard</div>
+          <div class="muted" style="margin-top:6px">Service share mini pies and combined percentage pie. Use filters to change the period.</div>
+        </div>
+
+        <div class="dash-controls">
+          <label class="muted">Period:</label>
+          <select id="dashPeriod">
+            <option value="all">All Time</option>
+            <option value="daily">Daily</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+          <input type="date" id="dashDate" style="display:none" />
+          <select id="dashMonth" style="display:none">
+            <option value="">--Month--</option>
+            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+            <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+            <option value="07">July</option><option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <input id="dashYear" type="number" placeholder="Year (e.g., 2025)" style="width:110px;display:none" />
+          <button id="dashApply" class="btn">Apply</button>
+
+          <!-- Logout on dashboard top-right -->
+          <button id="logoutBtn" class="dash-logout">Logout</button>
+          <button id="backToRecords" class="btn ghost">Back to Records</button>
+        </div>
+      </div>
+
+      <!-- Mini pies & labels -->
+      <div style="margin-top:16px" class="mini-charts-grid">
+        <div class="stat-mini">
+          <canvas id="miniCleaning" width="80" height="80"></canvas>
+          <div>
+            <div class="label">Cleaning</div>
+            <div class="amount" id="miniCleaningAmt">₱0</div>
+            <div class="pct" id="miniCleaningPct">0%</div>
+          </div>
+        </div>
+
+        <div class="stat-mini">
+          <canvas id="miniInstallation" width="80" height="80"></canvas>
+          <div>
+            <div class="label">Installation</div>
+            <div class="amount" id="miniInstallationAmt">₱0</div>
+            <div class="pct" id="miniInstallationPct">0%</div>
+          </div>
+        </div>
+
+        <div class="stat-mini">
+          <canvas id="miniRelocation" width="80" height="80"></canvas>
+          <div>
+            <div class="label">Relocation</div>
+            <div class="amount" id="miniRelocationAmt">₱0</div>
+            <div class="pct" id="miniRelocationPct">0%</div>
+          </div>
+        </div>
+
+        <div class="stat-mini">
+          <canvas id="miniRepair" width="80" height="80"></canvas>
+          <div>
+            <div class="label">Repair</div>
+            <div class="amount" id="miniRepairAmt">₱0</div>
+            <div class="pct" id="miniRepairPct">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combined pie + brands + unit type pie -->
+      <div class="chart-row">
+        <div class="combined-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">Service Distribution</div>
+            <div class="muted">Colored by service, quick view</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap">
+            <canvas id="combinedService" style="max-width:420px;max-height:320px"></canvas>
+            <div style="min-width:160px">
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="width:12px;height:12px;background:#1e90ff;border-radius:3px;display:inline-block"></span> Cleaning</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="width:12px;height:12px;background:#63b3ff;border-radius:3px;display:inline-block"></span> Installation</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="width:12px;height:12px;background:#ffa94d;border-radius:3px;display:inline-block"></span> Relocation</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="width:12px;height:12px;background:#ff6b6b;border-radius:3px;display:inline-block"></span> Repair</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-small">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">Top Brands</div>
+            <div class="muted">Based on net revenue</div>
+          </div>
+          <canvas id="brandsChart" style="margin-top:12px; max-height:360px"></canvas>
+        </div>
+      </div>
+
+      <!-- Unit Type Pie Chart (below combined) -->
+      <div style="margin-top:16px" class="card-small">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Unit Type Distribution</div>
+          <div class="muted">Total units & percentage per type</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap">
+          <canvas id="unitTypeChart" style="max-width:420px;max-height:320px"></canvas>
+          <div id="unitTypeList" style="min-width:200px"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="card-small">
+        <div style="font-weight:700">Summary</div>
+        <div id="dashSummary" style="margin-top:8px" class="muted"></div>
+        <div style="margin-top:12px">
+          <div style="font-weight:700;margin-bottom:6px">Totals</div>
+          <div id="dashTotals" class="muted"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ----------------- Storage keys & helpers ----------------- */
+const USERS_KEY = "bnc_users_v1";
+const RECORD_KEY_PREFIX = "bnc_records_";
+const SESSION_KEY = "bnc_current_user_v1";
+
+function loadUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function loadRecordsFor(user){ return JSON.parse(localStorage.getItem(RECORD_KEY_PREFIX + user) || "[]"); }
+function saveRecordsFor(user, recs){ localStorage.setItem(RECORD_KEY_PREFIX + user, JSON.stringify(recs||[])); }
+function encodePw(p){ return btoa(p); } // demo only; not secure
+function numberFormat(n){ return (Math.round((n||0)*100)/100).toLocaleString(); }
+function escapeHtml(s){ return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ----------------- Auth UI wiring ----------------- */
+const signinToggle = document.getElementById("signinToggle");
+const signupToggle = document.getElementById("signupToggle");
+const signinForm = document.getElementById("signinForm");
+const signupForm = document.getElementById("signupForm");
+const doLogin = document.getElementById("doLogin");
+const doSignup = document.getElementById("doSignup");
+const goSignUp = document.getElementById("goSignUp");
+const toSignIn = document.getElementById("toSignIn");
+
+signinToggle.onclick = ()=>{ signinToggle.classList.add("active"); signupToggle.classList.remove("active"); signinForm.style.display="block"; signupForm.style.display="none"; document.getElementById("authTitle").textContent="Sign in"; }
+signupToggle.onclick = ()=>{ signupToggle.classList.add("active"); signinToggle.classList.remove("active"); signupForm.style.display="block"; signinForm.style.display="none"; document.getElementById("authTitle").textContent="Create account"; }
+goSignUp.onclick = ()=>{ signupToggle.click(); }
+toSignIn.onclick = ()=>{ signinToggle.click(); }
+
+let currentUser = null;
+
+/* Show app for user (goes to Add Record view) */
+function showAppFor(user){
+  currentUser = user;
+  localStorage.setItem(SESSION_KEY, user); // persist session
+  document.getElementById("authContainer").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("recordsCard").style.display = "block";
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("welcomeMsg").textContent = `Hi, ${user}`;
+  document.getElementById("topWelcome").textContent = `${user}`;
+  document.getElementById("backToRecords").style.display = "none";
+  populateMonths();
+  renderRecords();
+}
+
+/* Signup & Login */
+doSignup.addEventListener("click", ()=> {
+  const u = document.getElementById("newUser").value.trim();
+  const p = document.getElementById("newPass").value;
+  const p2 = document.getElementById("newPass2").value;
+  if(!u || !p){ alert("Please provide username and password."); return; }
+  if(p !== p2){ alert("Passwords do not match."); return; }
+  const users = loadUsers();
+  if(users[u]){ alert("Username exists — choose another."); return; }
+  users[u] = { pw: encodePw(p) };
+  saveUsers(users);
+  saveRecordsFor(u, []);
+  alert("Account created. You can sign in now.");
+  signinToggle.click();
+  document.getElementById("newUser").value=""; document.getElementById("newPass").value=""; document.getElementById("newPass2").value="";
+});
+
+doLogin.addEventListener("click", ()=> {
+  const u = document.getElementById("loginUser").value.trim();
+  const p = document.getElementById("loginPass").value;
+  if(!u || !p){ alert("Please enter username and password."); return; }
+  const users = loadUsers();
+  if(!users[u] || users[u].pw !== encodePw(p)){ alert("Invalid credentials."); return; }
+  document.getElementById("loginUser").value=""; document.getElementById("loginPass").value="";
+  showAppFor(u);
+});
+
+/* Logout (placed in dashboard area) */
+document.getElementById("logoutBtn").addEventListener("click", ()=> {
+  if(!currentUser) return;
+  if(confirm("Log out?")){
+    currentUser = null;
+    localStorage.removeItem(SESSION_KEY); // clear persisted session
+    document.getElementById("app").style.display = "none";
+    document.getElementById("authContainer").style.display = "block";
+    signinToggle.click();
+    document.getElementById("topWelcome").textContent = "";
+  }
+});
+
+/* ----------------- Init date defaults ----------------- */
+document.getElementById("date").value = new Date().toISOString().slice(0,10);
+document.getElementById("dashDate").value = new Date().toISOString().slice(0,10);
+
+/* ----------------- Add record (with brand & labor & unit type) ----------------- */
+document.getElementById("addRecordBtn").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const unitTypeInput = document.getElementById("unitType").value.trim();
+  const rec = {
+    date: document.getElementById("date").value,
+    client: document.getElementById("client").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    contactType: document.getElementById("contactType").value,
+    clientType: document.getElementById("clientType").value,
+    contact: document.getElementById("contact").value.trim(),
+    hpType: document.getElementById("hpType").value.trim(),
+    technician: document.getElementById("technician").value.trim(),
+    service: document.getElementById("service").value,
+    brand: document.getElementById("brand").value.trim(),
+    unitType: unitTypeInput || "Unknown",
+    unit: parseFloat(document.getElementById("unit").value) || 0,
+    supplier: parseFloat(document.getElementById("supplier").value) || 0,
+    gross: parseFloat(document.getElementById("gross").value) || 0,
+    labor: parseFloat(document.getElementById("labor").value) || 0,
+    extra: parseFloat(document.getElementById("extra").value) || 0,
+    deduction: parseFloat(document.getElementById("deduction").value) || 0
+  };
+  if(!rec.date || !rec.client){ alert("Date and Client are required."); return; }
+  const recs = loadRecordsFor(currentUser);
+  recs.push(rec);
+  saveRecordsFor(currentUser, recs);
+  // if new unit type was typed and not in datalist, add it as option for convenience
+  addUnitTypeIfNew(rec.unitType);
+  clearAddForm();
+  renderRecords();
+});
+
+document.getElementById("clearAdd").addEventListener("click", clearAddForm);
+
+function addUnitTypeIfNew(val){
+  if(!val) return;
+  const list = document.getElementById("unitTypes");
+  const exists = Array.from(list.options).some(opt => opt.value.toLowerCase() === val.toLowerCase());
+  if(!exists){
+    const o = document.createElement('option');
+    o.value = val;
+    list.appendChild(o);
+  }
+}
+
+function clearAddForm(){
+  const ids = ["client","address","contactType","clientType","contact","hpType","technician","service","unitType","unit","supplier","gross","extra","deduction","brand","labor"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.tagName === "SELECT") el.selectedIndex = 0;
+    else el.value = "";
+  });
+  document.getElementById("date").value = new Date().toISOString().slice(0,10);
+}
+
+/* ----------------- renderRecords ----------------- */
+function renderRecords(viewList = null){
+  if(!currentUser){
+    document.querySelector("#recordTable tbody").innerHTML = "";
+    return;
+  }
+  const all = loadRecordsFor(currentUser);
+  let toShow;
+  if(!viewList){
+    toShow = all.map((r, idx) => ({ rec: r, __origIndex: idx }));
+  } else {
+    toShow = viewList.map(item => {
+      if(item && typeof item.__origIndex !== "undefined") return item;
+      const idx = all.findIndex(r => JSON.stringify(r) === JSON.stringify(item));
+      return { rec: item, __origIndex: idx >= 0 ? idx : null };
+    });
+  }
+
+  const tbody = document.querySelector("#recordTable tbody");
+  tbody.innerHTML = "";
+  let totalNet = 0, totalGross = 0, totalExtra = 0, totalDeduct = 0, totalLabor=0, totalSupplier=0, totalUnits=0;
+  const serviceTotals = { "Cleaning":0, "Installation":0, "Check Up":0, "Relocation":0, "Repair":0 };
+  const unitTypeCounts = {}; // by units (sum of unit counts)
+  const unitTypeRevenue = {}; // by net revenue (optional)
+
+  toShow.forEach((entry, i) => {
+    const r = entry.rec;
+    if(!r) return;
+    // Net = Gross - (Extra + Labor + Deduction + Supplier)
+    const net = (r.gross || 0) - ((r.extra || 0) + (r.labor || 0) + (r.deduction || 0) + (r.supplier || 0));
+    totalNet += net; totalGross += (r.gross || 0); totalExtra += (r.extra || 0); totalDeduct += (r.deduction || 0); totalLabor += (r.labor || 0); totalSupplier += (r.supplier || 0);
+    totalUnits += (r.unit || 0);
+
+    if(serviceTotals.hasOwnProperty(r.service)) serviceTotals[r.service] += net;
+
+    // unit type accumulation (counts - by unit number)
+    const ut = (r.unitType || "Unknown").trim();
+    if(!unitTypeCounts[ut]) unitTypeCounts[ut] = 0;
+    unitTypeCounts[ut] += (r.unit || 0);
+
+    if(!unitTypeRevenue[ut]) unitTypeRevenue[ut] = 0;
+    unitTypeRevenue[ut] += net;
+
+    const tr = document.createElement("tr");
+    tr.setAttribute('data-orig', entry.__origIndex);
+    tr.innerHTML = `
+      <td>${r.date}</td>
+      <td>${escapeHtml(r.client)}</td>
+      <td>${escapeHtml(r.address)}</td>
+      <td>${escapeHtml(r.contactType)}</td>
+      <td>${escapeHtml(r.clientType)}</td>
+      <td>${escapeHtml(r.contact)}</td>
+      <td>${escapeHtml(r.hpType)}</td>
+      <td>${escapeHtml(r.technician)}</td>
+      <td>${escapeHtml(r.service)}</td>
+      <td>${escapeHtml(r.brand)}</td>
+      <td>${escapeHtml(ut)}</td>
+      <td>${numberFormat(r.unit)}</td>
+      <td>₱${numberFormat(r.gross)}</td>
+      <td>₱${numberFormat(r.labor)}</td>
+      <td>₱${numberFormat(r.extra)}</td>
+      <td>₱${numberFormat(r.deduction)}</td>
+      <td>₱${numberFormat(r.supplier)}</td>
+      <td><b>₱${numberFormat(net)}</b></td>
+      <td>
+        <button class="edit-btn" data-orig="${entry.__origIndex}">Edit</button>
+        <button class="delete-btn" data-orig="${entry.__origIndex}">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("totals").innerHTML = `Total Gross: ₱${numberFormat(totalGross)} | Total Labor: ₱${numberFormat(totalLabor)} | Total Extra: ₱${numberFormat(totalExtra)} | Total Supplier: ₱${numberFormat(totalSupplier)} | Total Deduction: ₱${numberFormat(totalDeduct)} | <b>Grand Total Net: ₱${numberFormat(totalNet)}</b>`;
+
+  document.getElementById("serviceSummary").innerHTML = `Service income — Cleaning: ₱${numberFormat(serviceTotals["Cleaning"])} | Installation: ₱${numberFormat(serviceTotals["Installation"])} | Check Up: ₱${numberFormat(serviceTotals["Check Up"])} | Relocation: ₱${numberFormat(serviceTotals["Relocation"])} | Repair: ₱${numberFormat(serviceTotals["Repair"])}`;
+
+  // wire delete buttons
+  document.querySelectorAll(".delete-btn").forEach(btn=>{
+    btn.onclick = () => {
+      const orig = btn.getAttribute("data-orig");
+      if(orig === null || orig === "null"){ alert("Cannot determine original record to delete."); return; }
+      const idx = parseInt(orig);
+      if(isNaN(idx)){ alert("Delete index invalid."); return; }
+      if(confirm("Delete this record?")){
+        const recs = loadRecordsFor(currentUser);
+        if(idx >= 0 && idx < recs.length){
+          recs.splice(idx, 1);
+          saveRecordsFor(currentUser, recs);
+          renderRecords();
+        } else {
+          alert("Record not found.");
+        }
+      }
+    };
+  });
+
+  // wire edit buttons (inline edit)
+  document.querySelectorAll(".edit-btn").forEach(btn=>{
+    btn.onclick = () => {
+      const orig = btn.getAttribute("data-orig");
+      if(orig === null || orig === "null"){ alert("Cannot determine original record to edit."); return; }
+      const idx = parseInt(orig);
+      if(isNaN(idx)){ alert("Edit index invalid."); return; }
+      const recs = loadRecordsFor(currentUser);
+      if(idx < 0 || idx >= recs.length){ alert("Record not found."); return; }
+      const r = recs[idx];
+
+      // find row that has data-orig == idx (first occurrence)
+      const row = Array.from(document.querySelectorAll('#recordTable tbody tr')).find(tr => tr.getAttribute('data-orig') === String(idx));
+      if(!row) { alert("Row not found for editing."); return; }
+
+      // Build inline editable row (inputs/selects). We'll keep the same column order.
+      row.innerHTML = `
+        <td><input type="date" class="edit-date" value="${r.date}" /></td>
+        <td><input type="text" class="edit-client" value="${escapeHtml(r.client)}" /></td>
+        <td><input type="text" class="edit-address" value="${escapeHtml(r.address)}" /></td>
+        <td>
+          <select class="edit-contactType">
+            <option${r.contactType==='Tel/Cellphone'?' selected':''}>Tel/Cellphone</option>
+            <option${r.contactType==='Tel'?' selected':''}>Tel</option>
+            <option${r.contactType==='Cellphone'?' selected':''}>Cellphone</option>
+          </select>
+        </td>
+        <td>
+          <select class="edit-clientType">
+            <option${r.clientType==='Residential'?' selected':''}>Residential</option>
+            <option${r.clientType==='Commercial'?' selected':''}>Commercial</option>
+            <option${r.clientType==='Institutional'?' selected':''}>Institutional</option>
+          </select>
+        </td>
+        <td><input type="text" class="edit-contact" value="${escapeHtml(r.contact)}" /></td>
+        <td><input type="text" class="edit-hpType" value="${escapeHtml(r.hpType)}" /></td>
+        <td><input type="text" class="edit-technician" value="${escapeHtml(r.technician)}" /></td>
+        <td>
+          <select class="edit-service">
+            <option${r.service==='Cleaning'?' selected':''}>Cleaning</option>
+            <option${r.service==='Installation'?' selected':''}>Installation</option>
+            <option${r.service==='Repair'?' selected':''}>Repair</option>
+            <option${r.service==='Relocation'?' selected':''}>Relocation</option>
+            <option${r.service==='Check Up'?' selected':''}>Check Up</option>
+          </select>
+        </td>
+        <td><input type="text" class="edit-brand" value="${escapeHtml(r.brand)}" /></td>
+        <td><input list="unitTypes" class="edit-unitType" value="${escapeHtml(r.unitType)}" /></td>
+        <td><input type="number" class="edit-unit" value="${r.unit}" /></td>
+        <td><input type="number" class="edit-gross" value="${r.gross}" /></td>
+        <td><input type="number" class="edit-labor" value="${r.labor}" /></td>
+        <td><input type="number" class="edit-extra" value="${r.extra}" /></td>
+        <td><input type="number" class="edit-deduction" value="${r.deduction}" /></td>
+        <td><input type="number" class="edit-supplier" value="${r.supplier}" /></td>
+        <td><b>₱${numberFormat((r.gross||0)-((r.extra||0)+(r.labor||0)+(r.deduction||0)+(r.supplier||0)))}</b></td>
+        <td>
+          <button class="save-btn" data-orig="${idx}">Save</button>
+          <button class="cancel-btn" data-orig="${idx}">Cancel</button>
+        </td>
+      `;
+
+      // wire save & cancel for this inline row
+      const saveBtn = row.querySelector('.save-btn');
+      const cancelBtn = row.querySelector('.cancel-btn');
+
+      saveBtn.onclick = () => {
+        // gather edited values
+        const newRec = {
+          date: row.querySelector('.edit-date').value,
+          client: row.querySelector('.edit-client').value.trim(),
+          address: row.querySelector('.edit-address').value.trim(),
+          contactType: row.querySelector('.edit-contactType').value,
+          clientType: row.querySelector('.edit-clientType').value,
+          contact: row.querySelector('.edit-contact').value.trim(),
+          hpType: row.querySelector('.edit-hpType').value.trim(),
+          technician: row.querySelector('.edit-technician').value.trim(),
+          service: row.querySelector('.edit-service').value,
+          brand: row.querySelector('.edit-brand').value.trim(),
+          unitType: row.querySelector('.edit-unitType').value.trim() || "Unknown",
+          unit: parseFloat(row.querySelector('.edit-unit').value) || 0,
+          gross: parseFloat(row.querySelector('.edit-gross').value) || 0,
+          labor: parseFloat(row.querySelector('.edit-labor').value) || 0,
+          extra: parseFloat(row.querySelector('.edit-extra').value) || 0,
+          deduction: parseFloat(row.querySelector('.edit-deduction').value) || 0,
+          supplier: parseFloat(row.querySelector('.edit-supplier').value) || 0
+        };
+        if(!newRec.date || !newRec.client){ alert("Date and Client are required."); return; }
+        // update storage
+        const recs2 = loadRecordsFor(currentUser);
+        recs2[idx] = newRec;
+        saveRecordsFor(currentUser, recs2);
+        addUnitTypeIfNew(newRec.unitType);
+        renderRecords();
+      };
+
+      cancelBtn.onclick = () => {
+        renderRecords(); // simply rerender to restore original row
+      };
+    };
+  });
+}
+
+/* ----------------- Search ----------------- */
+document.getElementById("searchBtn").addEventListener("click", ()=> {
+  if(!currentUser) return;
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  const all = loadRecordsFor(currentUser);
+  if(!q){ renderRecords(); return; }
+  const filtered = [];
+  all.forEach((r, idx) => {
+    if((r.client||"").toLowerCase().includes(q) || (r.address||"").toLowerCase().includes(q) || (r.service||"").toLowerCase().includes(q) || (r.technician||"").toLowerCase().includes(q) || (r.brand||"").toLowerCase().includes(q) || (r.unitType||"").toLowerCase().includes(q)){
+      filtered.push({ rec: r, __origIndex: idx });
+    }
+  });
+  renderRecords(filtered);
+});
+document.getElementById("clearSearch").addEventListener("click", ()=>{ document.getElementById("searchInput").value=""; renderRecords(); });
+
+/* ----------------- Month filter ----------------- */
+document.getElementById("applyMonth").addEventListener("click", ()=> {
+  if(!currentUser) return;
+  const sel = document.getElementById("monthFilter").value; // "" or "01".."12"
+  const all = loadRecordsFor(currentUser);
+  if(!sel){ renderRecords(); return; } // All months
+  const filtered = [];
+  all.forEach((r, idx) => {
+    if(!r.date) return;
+    const month = r.date.slice(5,7);
+    if(month === sel) filtered.push({ rec: r, __origIndex: idx });
+  });
+  renderRecords(filtered);
+});
+document.getElementById("clearMonth").addEventListener("click", ()=>{ document.getElementById("monthFilter").value=""; renderRecords(); });
+
+/* ----------------- Export CSV & Word & PPT ----------------- */
+document.getElementById("exportCSV").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const recs = loadRecordsFor(currentUser);
+  if(recs.length === 0){ alert("No records to export."); return; }
+  let csv = "Date,Client,Address,Contact Type,Client Type,Contact,HP Type,Technician,Service,Brand,Unit Type,Unit,Gross,Labor,Extra,Deduction,Supplier,Net\n";
+  let totalNet = 0;
+  recs.forEach(r=>{
+    const net = (r.gross || 0) - ((r.extra || 0) + (r.labor || 0) + (r.deduction || 0) + (r.supplier || 0));
+    totalNet += net;
+    const cols = [r.date, r.client, r.address, r.contactType, r.clientType, r.contact, r.hpType, r.technician, r.service, r.brand, r.unitType, r.unit, r.gross, r.labor, r.extra, r.deduction, r.supplier, net];
+    csv += cols.map(c => `"${String(c === null || typeof c === 'undefined' ? '' : c).replace(/"/g,'""')}"`).join(",") + "\n";
+  });
+  csv += `,,,,,,,,,,,,,,,,,"Grand Total Net",${totalNet}\n`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentUser}_BreezeNCool_Records.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("exportWord").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const recs = loadRecordsFor(currentUser);
+  if(recs.length === 0){ alert("No records to export."); return; }
+  let totalNet = 0;
+  let html = `<h2>${escapeHtml(currentUser)} — Breeze N Cool Records</h2><table border="1" style="border-collapse:collapse;width:100%"><tr><th>Date</th><th>Client</th><th>Address</th><th>Contact Type</th><th>Client Type</th><th>Contact</th><th>HP Type</th><th>Technician</th><th>Service</th><th>Brand</th><th>Unit Type</th><th>Unit</th><th>Gross</th><th>Labor</th><th>Extra</th><th>Deduction</th><th>Supplier</th><th>Net</th></tr>`;
+  recs.forEach(r=>{
+    const net = (r.gross || 0) - ((r.extra || 0) + (r.labor || 0) + (r.deduction || 0) + (r.supplier || 0));
+    totalNet += net;
+    html += `<tr>
+      <td>${r.date}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.address)}</td><td>${escapeHtml(r.contactType)}</td><td>${escapeHtml(r.clientType)}</td>
+      <td>${escapeHtml(r.contact)}</td><td>${escapeHtml(r.hpType)}</td><td>${escapeHtml(r.technician)}</td><td>${escapeHtml(r.service)}</td><td>${escapeHtml(r.brand)}</td><td>${escapeHtml(r.unitType)}</td><td>${numberFormat(r.unit)}</td>
+      <td>₱${numberFormat(r.gross)}</td><td>₱${numberFormat(r.labor)}</td><td>₱${numberFormat(r.extra)}</td><td>₱${numberFormat(r.deduction)}</td><td>₱${numberFormat(r.supplier)}</td><td>₱${numberFormat(net)}</td>
+    </tr>`;
+  });
+  html += `<tr><td colspan="17" style="text-align:right;"><b>Grand Total Net</b></td><td>₱${numberFormat(totalNet)}</td></tr></table>`;
+  // add dashboard summary
+  html += `<h3>Dashboard Summary</h3><p>${document.getElementById('dashSummary').innerHTML}</p><p>${document.getElementById('dashTotals').innerHTML}</p>`;
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentUser}_BreezeNCool_Records.doc`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("exportPpt").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  const recs = loadRecordsFor(currentUser);
+  if(recs.length === 0){ alert("No records to export."); return; }
+  // Build a simple HTML "slides" file and offer as .ppt (Office can open HTML-based PPT)
+  let html = `<html><head><meta charset="utf-8"><title>${escapeHtml(currentUser)} - Breeze N Cool</title></head><body>`;
+  html += `<h1>${escapeHtml(currentUser)} — Breeze N Cool Records</h1>`;
+  html += `<h2>Dashboard Summary</h2>`;
+  html += `<div>${document.getElementById('dashSummary').innerHTML}</div>`;
+  html += `<div style="margin-top:12px">${document.getElementById('dashTotals').innerHTML}</div>`;
+  html += `<h2 style="margin-top:18px">Records (first 20 shown)</h2>`;
+  html += `<table border="1" style="border-collapse:collapse;width:100%"><tr><th>Date</th><th>Client</th><th>Service</th><th>Brand</th><th>Unit Type</th><th>Unit</th><th>Net</th></tr>`;
+  let totalNet=0;
+  recs.slice(0,20).forEach(r=>{
+    const net = (r.gross || 0) - ((r.extra || 0) + (r.labor || 0) + (r.deduction || 0) + (r.supplier || 0));
+    totalNet += net;
+    html += `<tr><td>${r.date}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.service)}</td><td>${escapeHtml(r.brand)}</td><td>${escapeHtml(r.unitType)}</td><td>${numberFormat(r.unit)}</td><td>₱${numberFormat(net)}</td></tr>`;
+  });
+  html += `</table>`;
+  html += `<p style="margin-top:12px"><b>Grand Total Net (first 20 shown):</b> ₱${numberFormat(totalNet)}</p>`;
+  html += `</body></html>`;
+  const blob = new Blob([html], { type: 'application/vnd.ms-powerpoint' });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentUser}_BreezeNCool_Records.ppt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* ----------------- Dashboard logic & charts ----------------- */
+let miniCleaning=null, miniInstallation=null, miniRelocation=null, miniRepair=null, combinedService=null, brandsChart=null, unitTypeChart=null;
+
+function getFilteredRecordsForDashboard(period){
+  if(!currentUser) return [];
+  const all = loadRecordsFor(currentUser);
+  if(period === "all") return all.slice();
+
+  if(period === "daily"){
+    const d = document.getElementById("dashDate").value;
+    if(!d) return [];
+    return all.filter(r => r.date === d);
+  }
+  if(period === "monthly"){
+    const m = document.getElementById("dashMonth").value;
+    const y = String(document.getElementById("dashYear").value || "");
+    if(!m || !y) return [];
+    return all.filter(r => r.date.slice(0,4) === y && r.date.slice(5,7) === m);
+  }
+  if(period === "yearly"){
+    const y = String(document.getElementById("dashYear").value || "");
+    if(!y) return [];
+    return all.filter(r => r.date.slice(0,4) === y);
+  }
+  return all;
+}
+
+function updateDashboard(){
+  if(!currentUser) return;
+  const period = document.getElementById("dashPeriod").value;
+  const recs = getFilteredRecordsForDashboard(period);
+
+  let totalNet = 0;
+  let totalUnits = 0;
+  const serviceTotals = { "Cleaning":0, "Installation":0, "Relocation":0, "Repair":0, "Check Up":0 };
+  const brandTotals = {};
+  const unitTypeTotals = {}; // by unit count
+  const unitTypeRevenue = {}; // by net revenue
+
+  recs.forEach(r => {
+    const net = (r.gross || 0) - ((r.extra || 0) + (r.labor || 0) + (r.deduction || 0) + (r.supplier || 0));
+    totalNet += net;
+    totalUnits += (r.unit || 0);
+    if(serviceTotals.hasOwnProperty(r.service)) serviceTotals[r.service] += net;
+    const b = (r.brand || "Unknown").trim() || "Unknown";
+    const key = b.toLowerCase();
+    brandTotals[key] = (brandTotals[key] || { label: b, val: 0 });
+    brandTotals[key].val += net;
+
+    const ut = (r.unitType || "Unknown").trim() || "Unknown";
+    unitTypeTotals[ut] = (unitTypeTotals[ut] || 0) + (r.unit || 0);
+    unitTypeRevenue[ut] = (unitTypeRevenue[ut] || 0) + net;
+  });
+
+  // update mini stats amounts & percentages
+  const sC = serviceTotals["Cleaning"], sI = serviceTotals["Installation"], sR = serviceTotals["Relocation"], sRep = serviceTotals["Repair"];
+  const pct = v => totalNet ? Math.round((v/totalNet)*100) : 0;
+
+  document.getElementById("miniCleaningAmt").textContent = `₱${numberFormat(sC)}`;
+  document.getElementById("miniCleaningPct").textContent = `${pct(sC)}%`;
+  document.getElementById("miniInstallationAmt").textContent = `₱${numberFormat(sI)}`;
+  document.getElementById("miniInstallationPct").textContent = `${pct(sI)}%`;
+  document.getElementById("miniRelocationAmt").textContent = `₱${numberFormat(sR)}`;
+  document.getElementById("miniRelocationPct").textContent = `${pct(sR)}%`;
+  document.getElementById("miniRepairAmt").textContent = `₱${numberFormat(sRep)}`;
+  document.getElementById("miniRepairPct").textContent = `${pct(sRep)}%`;
+
+  // build or update mini doughnuts (small cutout)
+  function buildMini(chartRef, canvasEl, value, color){
+    const rest = Math.max(0, Math.round(totalNet - value));
+    if(chartRef && chartRef.destroy) chartRef.destroy();
+    const ctx = canvasEl.getContext('2d');
+    return new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels:['Value','Other'],
+        datasets:[{ data: [Math.round(value), rest], backgroundColor: [color, '#eef8ff'], borderWidth: 0 }]
+      },
+      options:{
+        cutout: '72%',
+        responsive: false,
+        maintainAspectRatio: false,
+        animation:{ duration:600, easing:'easeOutQuad' },
+        plugins:{ legend:{ display:false }, tooltip:{ enabled:false } }
+      }
+    });
+  }
+
+  miniCleaning = buildMini(miniCleaning, document.getElementById('miniCleaning'), sC, '#1e90ff');
+  miniInstallation = buildMini(miniInstallation, document.getElementById('miniInstallation'), sI, '#63b3ff');
+  miniRelocation = buildMini(miniRelocation, document.getElementById('miniRelocation'), sR, '#ffa94d');
+  miniRepair = buildMini(miniRepair, document.getElementById('miniRepair'), sRep, '#ff6b6b');
+
+  // combined service pie
+  const labels = ['Cleaning','Installation','Relocation','Repair'];
+  const values = [sC, sI, sR, sRep];
+  const colors = ['#1e90ff','#63b3ff','#ffa94d','#ff6b6b'];
+  if(combinedService && combinedService.destroy) combinedService.destroy();
+  const cc = document.getElementById('combinedService').getContext('2d');
+  combinedService = new Chart(cc, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{ data: values.map(v=>Math.round(v)), backgroundColor: colors, borderWidth:0 }]
+    },
+    options: {
+      animation:{ duration:800, easing:'easeOutQuart' },
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: (ctx)=> `${ctx.label}: ₱${numberFormat(ctx.raw)} (${pct(ctx.raw)}%)` } } }
+    }
+  });
+
+  // brands (top 8)
+  const brandEntries = Object.values(brandTotals).sort((a,b)=>b.val-a.val).slice(0,8);
+  const brandLabels = brandEntries.map(x => x.label);
+  const brandVals = brandEntries.map(x => Math.round(x.val));
+  const brandColors = ['#1e90ff','#63b3ff','#ffa94d','#ff6b6b','#7ae582','#a78bfa','#ff9ec2','#ffd57e'];
+  if(brandsChart && brandsChart.destroy) brandsChart.destroy();
+  const bc = document.getElementById('brandsChart').getContext('2d');
+  brandsChart = new Chart(bc, {
+    type: 'pie',
+    data: { labels: brandLabels.length ? brandLabels : ['No data'], datasets:[{ data: brandVals.length ? brandVals : [1], backgroundColor: brandColors.slice(0, Math.max(1, brandLabels.length)), borderWidth:0 }] },
+    options: { animation:{ duration:700, easing:'easeOutQuart' }, plugins:{ legend:{ position:'bottom' }, tooltip:{ callbacks:{ label: (ctx)=> `${ctx.label}: ₱${numberFormat(ctx.raw)} (${pct(ctx.raw)}%)` } } } }
+  });
+
+  // unit type pie (based on unit counts)
+  const unitEntries = Object.entries(unitTypeTotals).map(([k,v]) => ({ key:k, val:v })).sort((a,b)=>b.val-a.val);
+  const unitLabels = unitEntries.map(x => x.key);
+  const unitVals = unitEntries.map(x => Math.round(x.val));
+  const unitColors = ['#1e90ff','#63b3ff','#ffa94d','#ff6b6b','#7ae582','#a78bfa','#ff9ec2','#ffd57e','#8bd3ff','#caffbf'];
+  if(unitTypeChart && unitTypeChart.destroy) unitTypeChart.destroy();
+  const uc = document.getElementById('unitTypeChart').getContext('2d');
+  unitTypeChart = new Chart(uc, {
+    type: 'pie',
+    data: {
+      labels: unitLabels.length ? unitLabels : ['No unit data'],
+      datasets: [{ data: unitVals.length ? unitVals : [1], backgroundColor: unitColors.slice(0, Math.max(1, unitLabels.length)), borderWidth:0 }]
+    },
+    options: { animation:{ duration:700, easing:'easeOutQuart' }, plugins:{ legend:{ position:'bottom' }, tooltip:{ callbacks:{ label: (ctx)=> `${ctx.label}: ${numberFormat(ctx.raw)} unit(s) (${ totalUnits ? Math.round((ctx.raw/totalUnits)*100) : 0 }%)` } } } }
+  });
+
+  // update unit type list on the right (textual totals & percentages)
+  const unitTypeListDOM = document.getElementById('unitTypeList');
+  unitTypeListDOM.innerHTML = '';
+  unitEntries.forEach(e => {
+    const pctUnits = totalUnits ? Math.round((e.val/totalUnits)*100) : 0;
+    const div = document.createElement('div');
+    div.style.marginBottom = '8px';
+    div.innerHTML = `<div style="display:flex;justify-content:space-between"><div><b>${escapeHtml(e.key)}</b></div><div>${numberFormat(e.val)} unit(s)</div></div><div class="muted" style="font-size:13px">${pctUnits}% of total units</div>`;
+    unitTypeListDOM.appendChild(div);
+  });
+
+  // textual summary
+  document.getElementById("dashSummary").innerHTML = `
+    Total records: <b>${recs.length}</b><br/>
+    Total revenue (net): <b>₱${numberFormat(totalNet)}</b><br/>
+    Total units: <b>${numberFormat(totalUnits)}</b><br/>
+    Period: <b>${period}</b>
+  `;
+  document.getElementById("dashTotals").innerHTML = `
+    Cleaning: ₱${numberFormat(sC)} <br/>
+    Installation: ₱${numberFormat(sI)} <br/>
+    Relocation: ₱${numberFormat(sR)} <br/>
+    Repair: ₱${numberFormat(sRep)}
+  `;
+}
+
+/* Dashboard UI wiring */
+document.getElementById("dashPeriod").addEventListener("change", (e)=>{
+  const v = e.target.value;
+  document.getElementById("dashDate").style.display = v === 'daily' ? 'inline-block' : 'none';
+  document.getElementById("dashMonth").style.display = v === 'monthly' ? 'inline-block' : 'none';
+  document.getElementById("dashYear").style.display = (v === 'monthly' || v === 'yearly') ? 'inline-block' : 'none';
+});
+document.getElementById("dashApply").addEventListener("click", ()=> updateDashboard());
+
+/* Dashboard <-> Records toggles */
+document.getElementById("showDashboard").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  document.getElementById("recordsCard").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("backToRecords").style.display = "inline-block";
+  updateDashboard();
+});
+document.getElementById("dashboardBtn").addEventListener("click", ()=> {
+  if(!currentUser){ alert("Sign in first."); return; }
+  document.getElementById("recordsCard").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("backToRecords").style.display = "inline-block";
+  updateDashboard();
+});
+document.getElementById("backToRecords").addEventListener("click", ()=> {
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("backToRecords").style.display = "none";
+  document.getElementById("recordsCard").style.display = "block";
+});
+
+/* small : populate months/year convenience */
+function populateMonths(){
+  const y = new Date().getFullYear();
+  const dashYear = document.getElementById('dashYear');
+  if(dashYear && !dashYear.value) dashYear.value = y;
+}
+
+/* ----------------- init ----------------- */
+(function init(){
+  // Restore session (stay logged in after refresh)
+  const persisted = localStorage.getItem(SESSION_KEY);
+  if(persisted){
+    const users = loadUsers();
+    // show app only if user exists in users (avoid stale session if user removed)
+    if(users[persisted]){
+      showAppFor(persisted);
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  }
+  document.getElementById("date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("dashDate").value = new Date().toISOString().slice(0,10);
+  renderRecords();
+})();
+</script>
+</body>
+</html>
